@@ -2,32 +2,8 @@ import os
 import random
 import discord
 from discord.ext import commands
+from main import make_embed, fgen_files, pgen_files, user_invites
 
-# Freegen and Premiumgen file paths
-fgen_files = {
-    "minecraft": "minecraft_info.txt",
-    "netflix": "netflix_info.txt",
-    "steam": "steam_info.txt",
-    "roblox": "roblox_info.txt",
-    "crunchyroll": "crunchyroll_info.txt",
-    "nitro": "nitro_info.txt"
-}
-
-pgen_files = {
-    "minecraft": "p_minecraft_info.txt",
-    "netflix": "p_netflix_info.txt",
-    "steam": "p_steam_info.txt",
-    "roblox": "p_roblox_info.txt",
-    "crunchyroll": "p_crunchyroll_info.txt",
-    "nitro": "p_nitro_info.txt"
-}
-
-def make_embed(**kwargs):
-    embed = discord.Embed(color=random.randint(0, 0xFFFFFF), **kwargs)
-    embed.set_image(url="https://i.imgur.com/9hVqfby.gif")
-    return embed
-
-# --- fgen Command ---
 @commands.command()
 async def fgen(ctx, category=None):
     if category == "stock":
@@ -40,14 +16,10 @@ async def fgen(ctx, category=None):
         return
 
     if category not in fgen_files:
-        await ctx.send(embed=make_embed(title="❌ Invalid Category", description="Use a valid category or `stock`."))
+        await ctx.send(embed=make_embed(title="❌ Invalid Category", description="Use a valid category or `stock`"))
         return
 
     filepath = fgen_files[category]
-    if not os.path.exists(filepath):
-        await ctx.send(embed=make_embed(title="❌ File Missing", description=f"{filepath} not found."))
-        return
-
     with open(filepath, 'r') as f:
         lines = [line.strip() for line in f if line.strip()]
 
@@ -67,7 +39,6 @@ async def fgen(ctx, category=None):
     except:
         await ctx.send(embed=make_embed(title="❌ DM Error", description="Enable DMs to receive the account."))
 
-# --- pgen Command ---
 @commands.command()
 async def pgen(ctx, category=None):
     if category == "stock":
@@ -80,19 +51,15 @@ async def pgen(ctx, category=None):
         return
 
     if category not in pgen_files:
-        await ctx.send(embed=make_embed(title="❌ Invalid Category", description="Use a valid category or `stock`."))
+        await ctx.send(embed=make_embed(title="❌ Invalid Category", description="Use a valid category or `stock`"))
         return
 
     filepath = pgen_files[category]
-    if not os.path.exists(filepath):
-        await ctx.send(embed=make_embed(title="❌ File Missing", description=f"{filepath} not found."))
-        return
-
     with open(filepath, 'r') as f:
         lines = [line.strip() for line in f if line.strip()]
 
     if not lines:
-        await ctx.send(embed=make_embed(title="⚠️ Empty Stock", description="No names available."))
+        await ctx.send(embed=make_embed(title="⚠️ Empty Stock", description="No accounts available."))
         return
 
     selected = random.choice(lines)
@@ -107,25 +74,6 @@ async def pgen(ctx, category=None):
     except:
         await ctx.send(embed=make_embed(title="❌ DM Error", description="Enable DMs to receive the name."))
 
-# --- drop Command ---
-@commands.command()
-async def drop(ctx):
-    combined = list(fgen_files.values()) + list(pgen_files.values())
-    random.shuffle(combined)
-    for filepath in combined:
-        if os.path.exists(filepath):
-            with open(filepath, 'r') as f:
-                lines = [line.strip() for line in f if line.strip()]
-            if lines:
-                selected = random.choice(lines)
-                lines.remove(selected)
-                with open(filepath, 'w') as f:
-                    f.write('\n'.join(lines) + '\n')
-                await ctx.send(embed=make_embed(title="🎉 Drop", description=f"```{selected}```"))
-                return
-    await ctx.send(embed=make_embed(title="⚠️ All Stock Empty", description="No available accounts or names."))
-
-# --- stock Command ---
 @commands.command()
 async def stock(ctx):
     fstock = ""
@@ -143,7 +91,6 @@ async def stock(ctx):
     embed.add_field(name="📝 pgen Stock", value=pstock or "None", inline=False)
     await ctx.send(embed=embed)
 
-# --- help Command ---
 @commands.command()
 async def help(ctx):
     embed = make_embed(title="📘 Help Menu", description="Here are the available commands:")
@@ -151,12 +98,42 @@ async def help(ctx):
     embed.add_field(name="!pgen <category>", value="Generate premium name", inline=False)
     embed.add_field(name="!stock", value="View stock of all categories", inline=False)
     embed.add_field(name="!drop", value="Drop a random item from stock", inline=False)
+    embed.add_field(name="!payout <user_id> <service>", value="Send an account to a user", inline=False)
+    embed.add_field(name="!close", value="Close a ticket", inline=False)
+    embed.add_field(name="!i [@user]", value="See invite count for a user", inline=False)
+    embed.add_field(name="!topinvites", value="Leaderboard of top inviters", inline=False)
     await ctx.send(embed=embed)
 
-# --- Add Commands to Bot ---
+@commands.command(name="i")
+async def invites(ctx, member: discord.Member = None):
+    member = member or ctx.author
+    guild_id = ctx.guild.id
+    count = user_invites.get(guild_id, {}).get(member.id, 0)
+    await ctx.send(embed=make_embed(
+        title="📨 Invite Stats",
+        description=f"{member.mention} has **{count} invite(s)**."
+    ))
+
+@commands.command(name="topinvites")
+async def top_invites(ctx):
+    guild_id = ctx.guild.id
+    invites = user_invites.get(guild_id, {})
+    if not invites:
+        await ctx.send(embed=make_embed(title="📉 Top Inviters", description="No invite data available."))
+        return
+
+    sorted_invites = sorted(invites.items(), key=lambda x: x[1], reverse=True)[:10]
+    description = ""
+    for i, (user_id, count) in enumerate(sorted_invites, start=1):
+        user = ctx.guild.get_member(user_id)
+        if user:
+            description += f"**{i}.** {user.mention} - `{count}` invites\n"
+    await ctx.send(embed=make_embed(title="🏆 Top Inviters", description=description or "No invite data."))
+
 def setup(bot):
     bot.add_command(fgen)
     bot.add_command(pgen)
-    bot.add_command(drop)
     bot.add_command(stock)
     bot.add_command(help)
+    bot.add_command(invites)
+    bot.add_command(top_invites)
