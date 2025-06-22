@@ -15,14 +15,13 @@ load_dotenv("token.env")
 keep_alive()
 
 intents = discord.Intents.all()
-
 bot = commands.Bot(command_prefix='!', intents=intents, help_command=None)
 
 RGB_LINE = "https://i.imgur.com/9hVqfby.gif"
 BOT_OWNER_ID = 1355469919592120340
 TICKET_CHANNEL_ID = 1376975625100722236
 LOG_CHANNEL_ID = 1383716982083420231
-GIVEAWAYS = {}  # channel_id: message_id
+
 fgen_files = {
     "minecraft": "minecraft_info.txt",
     "netflix": "netflix_info.txt",
@@ -39,6 +38,7 @@ pgen_files = {
     "crunchyroll": "p_crunchyroll_info.txt",
     "nitro": "p_nitro_info.txt"
 }
+
 invite_tracker = {}
 user_invites = {}
 giveaway_entries = {}
@@ -163,7 +163,8 @@ async def on_guild_channel_delete(channel):
 async def global_admin_only(ctx):
     return ctx.author.id == BOT_OWNER_ID
 
-# --- FULL COMMANDS AREA ---
-from full_commands import *
+# --- Load Modular Commands ---
+from full_commands import setup
+setup(bot)
 
 bot.run(os.getenv("DISCORD_BOT_TOKEN"))
