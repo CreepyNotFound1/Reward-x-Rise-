@@ -88,7 +88,7 @@ async def on_member_join(member):
 
     movement_log = bot.get_channel(LOG_CHANNEL_ID)
     if movement_log:
-        await movement_log.send(f"📅 {member} joined the server.")
+        await movement_log.send(f"🗕️ {member} joined the server.")
 
 @bot.event
 async def on_member_remove(member):
@@ -110,7 +110,9 @@ async def on_message_edit(before, after):
         return
     log = bot.get_channel(LOG_CHANNEL_ID)
     if log and before.content != after.content:
-        await log.send(f"✏️ Message edited in {before.channel.mention} by {before.author.mention}:\nBefore: `{before.content}`\nAfter: `{after.content}`")
+        await log.send(f"✏️ Message edited in {before.channel.mention} by {before.author.mention}:
+Before: `{before.content}`
+After: `{after.content}`")
 
 @bot.event
 async def on_voice_state_update(member, before, after):
